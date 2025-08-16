@@ -1,0 +1,312 @@
+---
+// src/pages/personas/nueva.astro
+import Layout from "../../layouts/Layout.astro";
+import { supabase } from "../../lib/supabase";
+
+// Redirigimos si el usuario no está autenticado
+const {
+    data: { session },
+} = await supabase.auth.getSession();
+if (!session) {
+    return Astro.redirect("/login");
+}
+
+// Obtenemos las escalas para el dropdown del paso 2
+// 1. HACEMOS LA CONSULTA PARA OBTENER LAS ESCALAS
+const { data: escalas, error: escalasError } = await supabase
+    .from("escala_de_crecimiento")
+    .select("id, nombre_escala") // Solo necesitamos el id y el nombre
+    .order("id", { ascending: true }); // Opcional: ordenarlas
+
+if (escalasError) {
+    console.error(
+        "Error al cargar las escalas de crecimiento:",
+        escalasError.message,
+    );
+}
+---
+
+<Layout title="Registrar Nueva Persona" session={session}>
+    <div class="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow-md">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6">
+            Registro de Nueva Persona
+        </h1>
+
+        <!-- PASO 2: FORMULARIO COMPLETO (inicialmente oculto) -->
+        <form id="wizard-form">
+            <!-- PASO 1: VERIFICACIÓN DE ID -->
+            <div id="step-1">
+                <p class="text-gray-600">
+                    Para comenzar, por favor introduce el número de
+                    identificación.
+                </p>
+                <div>
+                    <label
+                        for="numero_id"
+                        class="block text-sm font-medium text-gray-700"
+                        >Número de ID</label
+                    >
+                    <input
+                        type="text"
+                        id="numero_id"
+                        name="numero_id"
+                        required
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+                    />
+                    <div
+                        id="id-error-message"
+                        class="text-red-600 text-sm mt-1"
+                    >
+                    </div>
+                </div>
+                <div class="mt-6">
+                    <!-- ¡CAMBIO IMPORTANTE! type="button" para que no envíe el formulario -->
+                    <button
+                        type="button"
+                        id="verify-btn"
+                        class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700"
+                    >
+                        Verificar y Continuar
+                    </button>
+                </div>
+            </div>
+
+            <!-- PASO 2: CAMPOS ADICIONALES (inicialmente oculto) -->
+            <div id="step-2" class="hidden space-y-4">
+                <p class="text-gray-600">
+                    ¡Perfecto! El número de ID es válido. Por favor, completa el
+                    resto de la información.
+                </p>
+                <!-- Campo oculto para pasar el numero_id verificado -->
+                <!-- <input type="hidden" id="verified_numero_id" name="numero_id" /> -->
+
+                <!-- Aquí pegamos TODOS los demás campos del formulario que teníamos en el modal -->
+                <!-- (Tipo ID, Nombres, Apellidos, Género, Nacimiento, Contacto, Escala, Dirección, Foto) -->
+
+                <!-- Ejemplo de un campo: -->
+                <div>
+                    <label
+                        for="tipo_id"
+                        class="block text-sm font-medium text-gray-700"
+                        >Tipo de ID</label
+                    >
+                    <select
+                        id="tipo_id"
+                        name="tipo_id"
+                        required
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+                    >
+                        <option value="Cédula de Ciudadanía"
+                            >Cédula de Ciudadanía</option
+                        >
+                        <option value="Tarjeta de Identidad"
+                            >Tarjeta de Identidad</option
+                        >
+                        <option value="Pasaporte">Pasaporte</option>
+                        <option value="Otro">Otro</option>
+                    </select>
+                </div>
+                <!-- Fila 2: Nombres y Apellidos -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label
+                            for="nombres"
+                            class="block text-sm font-medium text-gray-700"
+                            >Nombres</label
+                        >
+                        <input
+                            type="text"
+                            id="nombres"
+                            name="nombres"
+                            required
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+                        />
+                    </div>
+                    <div>
+                        <label
+                            for="primer_apellido"
+                            class="block text-sm font-medium text-gray-700"
+                            >Primer Apellido</label
+                        >
+                        <input
+                            type="text"
+                            id="primer_apellido"
+                            name="primer_apellido"
+                            required
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+                        />
+                    </div>
+                </div>
+                <div>
+                    <label
+                        for="segundo_apellido"
+                        class="block text-sm font-medium text-gray-700"
+                        >Segundo Apellido (Opcional)</label
+                    >
+                    <input
+                        type="text"
+                        id="segundo_apellido"
+                        name="segundo_apellido"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+                    />
+                </div>
+
+                <!-- Fila 3: Género y Nacimiento -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label
+                            for="genero"
+                            class="block text-sm font-medium text-gray-700"
+                            >Género</label
+                        >
+                        <select
+                            id="genero"
+                            name="genero"
+                            required
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+                        >
+                            <option value="Masculino">Masculino</option>
+                            <option value="Femenino">Femenino</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label
+                            for="fecha_nacimiento"
+                            class="block text-sm font-medium text-gray-700"
+                            >Fecha de Nacimiento</label
+                        >
+                        <input
+                            type="date"
+                            id="fecha_nacimiento"
+                            name="fecha_nacimiento"
+                            required
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+                        />
+                    </div>
+                </div>
+
+                <!-- Fila 4: Contacto -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label
+                            for="email"
+                            class="block text-sm font-medium text-gray-700"
+                            >Email</label
+                        >
+                        <input
+                            type="email"
+                            id="email"
+                            name="email"
+                            required
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+                        />
+                    </div>
+                    <div>
+                        <label
+                            for="telefono"
+                            class="block text-sm font-medium text-gray-700"
+                            >Teléfono</label
+                        >
+                        <input
+                            type="tel"
+                            id="telefono"
+                            name="telefono"
+                            required
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+                        />
+                    </div>
+                </div>
+                <div>
+                    <label
+                        for="id_escala"
+                        class="block text-sm font-medium text-gray-700"
+                        >Escala de Crecimiento</label
+                    >
+                    <select
+                        id="id_escala"
+                        name="id_escala"
+                        required
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+                    >
+                        <option value="" disabled selected
+                            >-- Seleccione una escala --</option
+                        >
+
+                        <!-- AQUÍ VIENE LA MAGIA DE ASTRO -->
+                        {
+                            escalas &&
+                                escalas.map((escala) => (
+                                    <option value={escala.id}>
+                                        {escala.nombre_escala}
+                                    </option>
+                                ))
+                        }
+                    </select>
+
+                    <!-- Mensaje de error si las escalas no se pudieron cargar -->
+                    {
+                        escalasError && (
+                            <p class="text-sm text-red-600 mt-1">
+                                No se pudieron cargar las escalas. Inténtelo de
+                                nuevo.
+                            </p>
+                        )
+                    }
+                </div>
+
+                <!-- Fila 5: Dirección y Foto -->
+                <div>
+                    <label
+                        for="direccion"
+                        class="block text-sm font-medium text-gray-700"
+                        >Dirección</label
+                    >
+                    <input
+                        type="text"
+                        id="direccion"
+                        name="direccion"
+                        required
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+                    />
+                </div>
+                <!-- FOTO  -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                    <div>
+                        <label
+                            for="foto_upload"
+                            class="block text-sm font-medium text-gray-700"
+                            >Foto (Opcional)</label
+                        >
+                        <input type="file" id="foto_upload" name="foto_upload" accept="image/*"/>
+                        <img id="foto_preview" src="https://via.placeholder.com/150" alt="Previsualización" class="mt-4 h-32 w-32 object-cover rounded-full mx-auto"/>
+                    <!-- Contenedor para la previsualización de la imagen -->
+                    <div class="mt-2">
+                        <img
+                            id="foto_preview"
+                            src="https://via.placeholder.com/150"
+                            alt="Vista previa de la foto"
+                            class="w-24 h-24 rounded-sm object-cover mx-auto md:mx-0"
+                        />
+                    </div>
+                </div>
+
+                <!-- Botón de envío final -->
+                <div class="pt-4 border-t border-gray-200">
+                    <!-- ¡CAMBIO IMPORTANTE! Este SÍ es type="submit" -->
+                    <button
+                        type="submit"
+                        id="submit-btn"
+                        class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700"
+                    >
+                        Guardar Persona
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</Layout>
+
+<script>
+    import { initializePersonaWizard } from "../../scripts/personas/wizard-form.ts";
+    initializePersonaWizard();
+</script>
